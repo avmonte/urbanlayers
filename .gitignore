@@ -1,0 +1,57 @@
+# The directory tree now carries the distinction this file used to carry alone.
+# data/source/ is irreplaceable and tracked; everything ignored below is
+# regenerable, re-downloadable, or dev state. So these are whole directories
+# rather than a list of filenames that had to be kept in step with the code.
+#
+# No trailing comments anywhere in here. `public/ # note` is a literal pattern
+# and silently ignores nothing — see Gotchas in docs/build-and-deploy.md.
+
+# ── Regenerable ──────────────────────────────────────────────────────────────
+# buildings.geojson, stats.json, needs_data.csv, orphans.json and the tiles.
+# Two minutes from data/ plus the cache; editor and public build share them.
+build/
+# Assembled by build_public.sh and deployed straight to the host.
+public/
+
+# ── Re-downloadable ──────────────────────────────────────────────────────────
+# The Geofabrik extract (53MB; GitHub warns past 50 and rejects past 100), its
+# dated copies, and the cached Overpass response. All fetched again on demand.
+data/cache/
+
+# ── Dev state ────────────────────────────────────────────────────────────────
+# queue.json, the offline twin of the D1 submission queue, written by
+# pipeline/server.py. Production submissions live in D1; this is never a record.
+data/local/
+
+# ── Local safety nets ────────────────────────────────────────────────────────
+# apply_queue.py copies data/source/*.json aside before writing. Git already
+# holds every previous version, so these are belt-and-braces, not project files.
+*.bak
+
+# ── Working notes ────────────────────────────────────────────────────────────
+# A catch-up list of what is not finished yet, including which security headers
+# are still missing. That is not something to publish.
+CATCHUP.md
+
+# ── Local experiments ────────────────────────────────────────────────────────
+# The era classifier and the one-off generators. They produce things the repo
+# depends on — inferred_buildings.json, water.geojson, suggestions edits — but
+# they run on a maintainer's machine, not in the build, and nobody needs them to
+# rebuild the map. Local only, so this ignores the tree.
+#
+# NOTE: exp/research/ holds hand-labelled data (labels.json, the to_label_*.csv
+# files, test_labels.json) that nothing can regenerate. Ignoring it means git no
+# longer backs it up — keep a copy somewhere.
+exp/
+
+# ── Environment ──────────────────────────────────────────────────────────────
+# wrangler's local cache — contains your Cloudflare account id.
+.wrangler/
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.DS_Store
+
+
+.claude

@@ -1,0 +1,16 @@
+# The most common thing anyone will want to report — a wrong or missing year —
+# must not become a GitHub issue. Years carry provenance, and provenance is
+# recorded by the review queue, not by a thread. These links appear above the
+# New Issue button, so the routing happens before anyone starts typing.
+blank_issues_enabled: true
+contact_links:
+  - name: A building's year is wrong or missing
+    url: https://urbanlayers.xyz
+    about: >-
+      Click the building on the map and use the form. It goes to a review
+      queue with the source you cite attached, which an issue cannot carry.
+  - name: A building's shape or address is wrong
+    url: https://www.openstreetmap.org/fixthemap
+    about: >-
+      Footprints and addresses come from OpenStreetMap. Fix it there and it
+      arrives here on the next rebuild.

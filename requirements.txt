@@ -1,0 +1,5 @@
+# Requires Python >= 3.12. Direct imports only; pip resolves the rest.
+
+requests==2.34.2      # pipeline/fetch_buildings.py
+certifi==2025.4.26    # CA bundle, imported directly by pipeline/osm_source.py + osm_live.py
+osmium==4.3.1         # PBF reading: fetch_buildings, osm_live

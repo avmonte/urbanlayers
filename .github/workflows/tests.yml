@@ -1,0 +1,41 @@
+# The seven scripts in tests/, on every push and pull request.
+#
+# Not the full build: that needs tippecanoe, a Geofabrik download and a
+# wrangler login, and it writes back to data/source/ — none of which belongs
+# in a PR check. What this proves is the thing a contributor can actually
+# break from a text editor, and test_parity.py is why the job installs Node:
+# it runs the JS validators in functions/api/_shared.js against the Python
+# ones and fails if they disagree.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 3.12 is the floor the project declares; testing on it rather than on
+      # latest means a contributor on the minimum version sees what CI sees.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No pip install: the tests import nothing outside the stdlib. If that
+      # ever stops being true, the failure here is the right place to find out.
+      - name: Run tests
+        run: |
+          status=0
+          for f in tests/*.py; do
+            echo "── $f"
+            python3 "$f" || status=1
+          done
+          exit $status
