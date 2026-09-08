@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Urban Layers: Yerevan through time</title>
+  <!-- MapLibre comes from a CDN, so it is pinned by content, not just by version
+       number. Without integrity= a republished 4.7.1 — or an unpkg compromise —
+       would execute here, on a page that takes public submissions and, behind
+       Access, renders the review queue. The hashes are sha384 of the exact files
+       and MUST be recomputed when the version bumps, or the map silently stops
+       loading:
+         curl -sSL https://unpkg.com/maplibre-gl@<v>/dist/maplibre-gl.js \
+           | openssl dgst -sha384 -binary | openssl base64 -A
+       Turnstile below carries no integrity on purpose: Cloudflare rotates that
+       script and pinning it would break the challenge, not secure it. -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"
+        integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V" crossorigin="anonymous">
+  <link href="map.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
+          integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
+  <!-- Turnstile guards /api/suggest. Deferred and optional: when the key is
+       unset the widget never renders and the Function skips verification,
+       which is what lets the whole flow run locally against server.py. -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+</head>
+<!-- The map. This file is the site: build_public.sh copies it to public/ under
+     the same name, so what you see locally is what deploys.
+
+     Its form only ever offers fields that are EMPTY and posts to /api/suggest,
+     a review queue — nothing submitted here reaches the map until apply_queue.py
+     merges an approved row. There is no privileged write path any more; the
+     maintainer goes through the same queue as everyone else.
+
+     The site key is public by design; the secret is a Cloudflare binding and
+     never leaves the dashboard. See docs/build-and-deploy.md.
+
+     Everything visible is built by buildChrome('public') in map.js. review.html
+     shares that furniture; what only one of them gets — the wordmark here, the
+     queue count and the pending filter there — is branched in that one
+     function. -->
+<body data-turnstile-site-key="__TURNSTILE_SITE_KEY__">
+<script src="map.js"></script>
+<script>initBuildingMap({ mode: 'public', tiles: true });</script>
+</body>
+</html>

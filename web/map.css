@@ -1,0 +1,702 @@
+/* ── Wordmark face ───────────────────────────────────────────────────────────
+   Armeniapedia Kisat (Raffi Kojian, 2016), carrying every glyph in ՈւՌԲԱՆ ԼԷԵՐԶ.
+   Other candidates were bundled while the face was being chosen and have since
+   been deleted; this is the only face in fonts/.
+
+   url() resolves against this stylesheet, which is served at /map.css both
+   locally and on Pages, so a bare fonts/… path is right in both places.
+
+   font-display: swap — a wordmark that arrives late beats a banner that is
+   blank while the face downloads. 11KB unsubsetted, which is small enough that
+   subsetting would save more effort than bytes. */
+@font-face {
+  font-family: 'Armeniapedia Kisat';
+  src: url('fonts/Armeniapedia-Kisat.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  --bg: #111;
+  --map-bg: #000000;
+  --panel-bg: rgba(15,15,15,0.92);
+  --panel-bg-soft: rgba(15,15,15,0.88);
+  --text: #ddd;
+  --text-dim: #ccc;
+  --text-faint: #888;
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.15);
+  --input-bg: rgba(255,255,255,0.06);
+  --placeholder: #666;
+  --popup-bg: rgba(4,4,4,0.95);
+  --popup-border: rgba(255,255,255,0.1);
+  --popup-shadow: rgba(0,0,0,0.8);
+  --loader-bg: rgba(0,0,0,0.75);
+  --accent-text: #d6c41d;
+  --accent-underline: rgba(214,196,29,0.4);
+  /* The wordmark sits directly on the map with no panel, so it has to stay
+     legible over anything the map can draw underneath it. Text is #ddd here,
+     so both of these are dark — see #wordmark for why that is the whole trick. */
+  --wordmark-halo: rgba(0,0,0,0.95);
+  --wordmark-scrim: rgba(0,0,0,0.5);
+}
+[data-theme="light"] {
+  --bg: #eef0f2;
+  --map-bg: #eef0f2;
+  --panel-bg: rgba(255,255,255,0.92);
+  --panel-bg-soft: rgba(255,255,255,0.88);
+  --text: #222;
+  --text-dim: #444;
+  --text-faint: #888;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.15);
+  --input-bg: rgba(0,0,0,0.04);
+  --placeholder: #999;
+  --popup-bg: rgba(255,255,255,0.97);
+  --popup-border: rgba(0,0,0,0.1);
+  --popup-shadow: rgba(0,0,0,0.25);
+  --loader-bg: rgba(255,255,255,0.85);
+  --accent-text: #6f6400;
+  --accent-underline: rgba(111,100,0,0.35);
+  /* Inverted with the text: #222 on light, so the halo goes light. */
+  --wordmark-halo: rgba(255,255,255,0.95);
+  --wordmark-scrim: rgba(238,240,242,0.62);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+#map { width: 100vw; height: 100vh; }
+
+#loader {
+  position: fixed; inset: 0; background: var(--loader-bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text); z-index: 999; gap: 14px;
+}
+#loader p { font-size: 13px; opacity: 0.6; }
+.spinner {
+  width: 38px; height: 38px; border: 3px solid var(--border-strong);
+  border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#legend {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: calc(14px + env(safe-area-inset-left));
+  background: var(--panel-bg); color: var(--text);
+  border-radius: 10px; padding: 12px 13px; z-index: 10;
+  width: 200px; backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+}
+.legend-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+#legend h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
+  opacity: 0.5;
+}
+
+/* The legend collapses on every screen, not just small ones: closed it is the
+   title and the colour scale, open it is the year filter, the counts and the
+   settings. Chrome you are not reading should not be sitting on the map. */
+.legend-toggle {
+  display: flex;
+  align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: var(--input-bg); border: 1px solid var(--border-strong);
+  color: var(--text-dim); padding: 0; cursor: pointer;
+}
+.legend-toggle-chevron {
+  display: block; font-size: 12px; line-height: 1;
+  transition: transform 0.25s ease;
+}
+#legend.legend-expanded .legend-toggle-chevron { transform: rotate(180deg); }
+#legend-extra {
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+/* Generous on purpose: the section carries the counts now as well, and
+   max-height only has to be >= the real height for the transition to finish. */
+#legend.legend-expanded #legend-extra { max-height: 520px; opacity: 1; }
+.legend-gradient {
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(to right,
+    #7b2d98 0%, #214e91 50%, #d6c41d 100%);
+}
+.legend-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; opacity: 0.55; margin-top: 4px;
+}
+.legend-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+.year-filter-label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+.year-filter-row { display: flex; align-items: center; gap: 6px; }
+.year-filter-input {
+  width: 100%; min-width: 0; background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 5px 7px; font-size: 12px;
+}
+.year-filter-input::placeholder { color: var(--placeholder); }
+.year-filter-sep { color: var(--text-faint); font-size: 11px; flex-shrink: 0; }
+
+/* two native range inputs stacked on the same track, each showing only its
+   thumb (the track itself is transparent — .year-range-track/-fill draw the
+   visible bar underneath) so it reads as one dual-handle slider */
+.year-range-slider { position: relative; height: 18px; margin: 8px 0; }
+.year-range-track {
+  position: absolute; top: 50%; left: 0; right: 0; height: 3px;
+  transform: translateY(-50%); background: var(--border-strong); border-radius: 2px;
+}
+.year-range-fill {
+  position: absolute; top: 50%; height: 3px;
+  transform: translateY(-50%); background: #d6c41d; border-radius: 2px;
+}
+.year-range-slider input[type="range"] {
+  position: absolute; top: 50%; left: 0; width: 100%; margin: 0;
+  transform: translateY(-50%);
+  -webkit-appearance: none; appearance: none;
+  background: transparent; pointer-events: none;
+}
+.year-range-slider input[type="range"]::-webkit-slider-runnable-track { -webkit-appearance: none; height: 3px; background: transparent; }
+.year-range-slider input[type="range"]::-moz-range-track { height: 3px; background: transparent; border: none; }
+.year-range-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto;
+  width: 13px; height: 13px; margin-top: -5px; border-radius: 50%;
+  background: #d6c41d; border: 2px solid var(--panel-bg); cursor: pointer;
+}
+.year-range-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto; width: 11px; height: 11px; border-radius: 50%;
+  background: #d6c41d; border: 2px solid var(--panel-bg); cursor: pointer;
+}
+
+.map-toggle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none;
+}
+.map-toggle + .map-toggle { margin-top: 8px; }
+/* The checkbox stays in the DOM and keeps every native behaviour — tab
+   focus, space to toggle, and the `change` event map.js listens on. It's
+   only hidden visually; display:none would drop it out of the tab order
+   and make the switch unreachable without a mouse. */
+.map-toggle input {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.map-switch {
+  position: relative; flex: none; width: 28px; height: 16px;
+  border-radius: 999px;
+  background: var(--input-bg); border: 1px solid var(--border-strong);
+  transition: background .16s ease, border-color .16s ease;
+}
+.map-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--text-faint);
+  transition: transform .16s ease, background .16s ease;
+}
+.map-toggle input:checked + .map-switch {
+  background: #d6c41d; border-color: #d6c41d;
+}
+/* 12px = the 26px inner width, less the 10px knob and its 2px left offset,
+   so the knob lands the same distance from the right edge as it started
+   from the left */
+.map-toggle input:checked + .map-switch::after {
+  transform: translateX(12px); background: #1a1a1a;
+}
+.map-toggle input:focus-visible + .map-switch {
+  outline: 2px solid var(--border-strong); outline-offset: 2px;
+}
+
+/* Sits under the light-mode toggle at the foot of the legend.
+   Underlined rather than colour-only: the accent has to survive both themes and
+   a colour-blind reader, and there is no other link in the panel to compare it
+   against. */
+.legend-contact { font-size: 10.5px; line-height: 1.5; color: var(--text-faint); }
+.legend-contact a {
+  color: var(--accent-text); text-decoration: none;
+  border-bottom: 1px solid var(--accent-underline);
+  white-space: nowrap;
+}
+.legend-contact a:hover { border-bottom-color: var(--accent-text); }
+.legend-contact a:focus-visible { outline: 2px solid var(--border-strong); outline-offset: 2px; }
+
+/* ── popup ── */
+.maplibregl-popup-content {
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: 10px;
+  padding: 13px 15px;
+  color: var(--text);
+  font-size: 12px;
+  min-width: 170px;
+  box-shadow: 0 0 30px var(--popup-shadow);
+  backdrop-filter: blur(10px);
+}
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup { pointer-events: all; }
+
+.p-year { font-size: 26px; font-weight: 700; line-height: 1.1; margin-bottom: 2px; }
+.p-year.no-data { color: var(--text-faint); }
+/* an era span is nine characters where an exact year is four — at the full 26px
+   it wraps inside the popup's 170px minimum. Smaller also reads as less certain,
+   which is the truth about it. No negative tracking here: the hyphen is already
+   tight against the digits at this weight, and pulling it in further makes
+   "1968-1991" read as a single number. */
+.p-year.range { font-size: 21px; white-space: nowrap; }
+/* "after 1958" is words as well as digits, and Armenian's is longer still —
+   it gets to wrap where a bare span never has to */
+.p-year.range.open { font-size: 18px; white-space: normal; }
+.p-conf { font-size: 10px; margin-bottom: 8px; letter-spacing: 0.03em; }
+.p-conf.known     { color: #39ff14; }
+.p-conf.inferred  { color: #00b8cc; }
+.p-conf.suggested { color: #39ff14; }
+.p-conf.none      { color: var(--text-faint); }
+.p-name  { font-size: 13px; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+.p-addr  { font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+
+/* suggest-a-year form — rendered on the public map (mode: public) */
+.p-suggest-input, .p-suggest-to {
+  width: 66px; background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 4px 6px; font-size: 12px;
+}
+.p-suggest-input::placeholder, .p-suggest-to::placeholder { color: var(--placeholder); }
+
+/* The two answers as a segmented control: which one is picked is what the save
+   writes, and it decides whether the year is a date or a bound. Real radios
+   underneath — moved off-screen rather than display:none so they keep working
+   with the keyboard and arrow keys — with the labels standing in for them, the
+   same swap .map-toggle makes for its switch. */
+.p-year-mode { display: flex; gap: 4px; }
+.p-year-mode-opt { flex: 1; cursor: pointer; }
+.p-year-mode-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.p-year-mode-opt span {
+  display: block; text-align: center; white-space: nowrap;
+  background: var(--input-bg); color: var(--text-faint);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 3px 0; font-size: 10px;
+}
+.p-year-mode-opt input:checked + span {
+  background: rgba(255,170,0,0.12); color: #d68a00;
+  border-color: rgba(255,170,0,0.3);
+}
+.p-year-mode-opt input:focus-visible + span { border-color: var(--text-dim); }
+
+/* only a range has a second bound, so the "to" box and the dash before it are
+   out of the layout entirely for an exact year rather than disabled */
+.p-suggest-sep, .p-suggest-to { display: none; }
+.p-edit-year-row.range-mode .p-suggest-sep { display: inline; color: var(--text-faint); }
+.p-edit-year-row.range-mode .p-suggest-to { display: block; }
+
+/* Both boxes of a range are optional — filling one says "after 1958" / "before
+   1972" — and an input allowed to stay empty has to say so, or it reads as a
+   form you cannot finish. Shown only in range mode, where it is true. */
+.p-year-hint { display: none; font-size: 10px; color: var(--text-faint); line-height: 1.3; }
+.p-year-hint.shown { display: block; }
+
+/* The evidence block, shared by both public forms. One field, and only the one
+   the chosen kind requires: a link for a published source, a note for local
+   knowledge, and nothing at all for a plaque — a plaque is a claim a reviewer
+   can go and check. Both inputs are out of the layout until they are the one
+   being asked for, so an untouched form is a question and a button. */
+.p-source-url, .p-source-note {
+  display: none;
+  background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 4px 6px; font-size: 12px; width: 100%; min-width: 0;
+}
+.p-source-url::placeholder, .p-source-note::placeholder { color: var(--placeholder); }
+.p-edit.needs-url .p-source-url { display: block; }
+.p-edit.needs-note .p-source-note { display: block; }
+
+/* review: the link and what it answered when it was submitted. "http 403" is
+   not a verdict — plenty of real sources refuse an automated HEAD — so it is
+   shown as plain information next to the link the reviewer can just click. */
+.r-source-url { display: block; margin-top: 4px; word-break: break-all; }
+.r-link-status { font-size: 10px; color: var(--text-faint); font-family: ui-monospace, monospace; }
+
+/* review card: what kind of thing the reviewer is being asked to decide. A
+   correction overwrites live data and a flag proposes nothing at all, and
+   neither reads that way from a list of values alone. */
+.r-kind {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  color: #d68a00; margin-bottom: 4px;
+}
+.r-kind.r-flag { color: #00b8cc; }
+/* An orphan is not a claim anybody made — it is this project's own year, moved
+   onto a footprint an OSM split left behind. Coloured apart from a correction
+   so it never reads as somebody's contribution. */
+.r-kind.r-orphan { color: #7a5cff; }
+
+/* ── reporting something wrong (phase 3) ──────────────────────────────────
+   The popup's facts become the form: a row per fact showing what the map says
+   now, with the input hidden until the fact is ticked. An untouched form has to
+   read as three statements about the building, not as nine empty inputs. */
+.p-report-open {
+  margin-top: 8px; width: 100%;
+  background: none; color: var(--text-faint);
+  border: 1px solid var(--border); border-radius: 5px;
+  padding: 5px 0; font-size: 11px; font-family: inherit; cursor: pointer;
+}
+.p-report-open:hover { color: var(--text); border-color: var(--border-strong); }
+.p-report-what { margin: 0; font-size: 11px; color: var(--text-dim); }
+.p-fact {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 11px; cursor: pointer; line-height: 1.4;
+}
+.p-fact-name { color: var(--text-dim); min-width: 52px; }
+/* what the map currently claims — the thing being disputed, so it reads as the
+   value it is rather than as a label */
+.p-fact-now { color: var(--text); flex: 1; min-width: 0; word-break: break-word; }
+.p-fact-now em { color: var(--text-faint); font-style: italic; }
+.p-fact-input { display: none; padding: 2px 0 4px 20px; }
+.p-fact-input.shown { display: block; }
+.p-fact-input > * + * { margin-top: 4px; }
+.p-report-hint { margin: 0; font-size: 10px; color: var(--text-faint); line-height: 1.3; }
+/* the same amber button every other form in this popup uses — a report is not
+   a different kind of act, it just carries more weight */
+.p-report-send:disabled { opacity: 0.5; cursor: default; }
+
+/* "your suggestion is on the map" — shown once, the visit after a submission
+   goes live, then the marker is dropped and this never appears again. Green like
+   .p-conf.suggested, because it is saying the same thing: this came from a
+   person, and it is real now. */
+/* Same green as .p-conf.suggested, and for the same reason: this came from a
+   person and it is on the map. The selector has to out-specify `.p-nothing p`
+   below, which sets the dim colour for that block — one class was not enough
+   and the thank-you rendered grey. */
+.p-edit .p-landed, .p-landed {
+  font-size: 11px; line-height: 1.35; color: #39ff14; margin: 0 0 2px;
+}
+
+/* the popup form body — shared by the suggest and report forms */
+.p-edit {
+  margin-top: 9px; padding-top: 9px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.p-edit-year-row { display: flex; align-items: center; gap: 6px; }
+.p-edit-name, .p-edit-street, .p-edit-number {
+  background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 4px 6px; font-size: 12px; width: 100%; min-width: 0;
+}
+.p-edit-name::placeholder, .p-edit-street::placeholder, .p-edit-number::placeholder {
+  color: var(--placeholder);
+}
+.p-edit-addr-row { display: flex; gap: 6px; }
+.p-edit-street { flex: 2; }
+.p-edit-number { flex: 1; }
+.p-edit-save {
+  align-self: flex-start;
+  background: rgba(255,170,0,0.12); color: #d68a00;
+  border: 1px solid rgba(255,170,0,0.3); border-radius: 5px;
+  padding: 4px 8px; font-size: 11px; cursor: pointer;
+}
+.p-edit-save:hover { background: rgba(255,170,0,0.22); }
+.p-edit-msg { font-size: 10px; color: var(--text-faint); }
+.p-gmaps {
+  display: inline-block; margin-top: 9px; padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 11px; color: #0066ff; text-decoration: none; width: 100%;
+}
+.p-gmaps:hover { color: #00a2b8; }
+
+/* ── Banner ──────────────────────────────────────────────────────────────────
+   Top left, the one corner nothing else uses: the legend is bottom left and
+   the stats panel is top right. Same panel treatment as both so it reads as
+   part of the same UI rather than an overlay on top of it. */
+/* No panel: the wordmark sits on the map itself. That means it has to survive
+   whatever the map draws under it, and the map can draw the worst case in both
+   themes — bright #d6c41d for a 2020 building and #bdbdbd water against light
+   text on dark, dark #7b2d98 and #214e91 against dark text on light. Plus a
+   white hover glow at 0.45 anywhere.
+
+   Two layers do it, and neither draws an edge:
+
+     1. a halo on the glyphs (below) — the cartographer's answer, the same
+        thing MapLibre does for its own labels. Always the opposite luminance
+        of the text, so it separates the letterforms from ANY fill.
+     2. a scrim (::before) — a flat tint plus a blur, faded out by a radial
+        mask so it has no border and no corner. It kills the busy-ness of
+        building outlines crossing the text, which a halo alone cannot.
+
+   The mask is what keeps this from being a panel again: the tint and the blur
+   both fall to nothing before they reach a hard edge. */
+#banner {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  left: calc(14px + env(safe-area-inset-left));
+  z-index: 10;
+  /* Decoration now, not a surface. Without this the logo would swallow clicks
+     on the buildings it happens to be sitting over. */
+  pointer-events: none;
+}
+#banner::before {
+  content: '';
+  position: absolute;
+  inset: -36px -64px -42px -42px;
+  z-index: -1;
+  background: var(--wordmark-scrim);
+  -webkit-backdrop-filter: blur(7px);
+          backdrop-filter: blur(7px);
+  -webkit-mask-image: radial-gradient(ellipse at 33% 50%, #000 30%, transparent 72%);
+          mask-image: radial-gradient(ellipse at 33% 50%, #000 30%, transparent 72%);
+  pointer-events: none;
+}
+#wordmark {
+  /* The fallback chain matters: if Kisat fails to load, an Armenian wordmark
+     must not land in a font with no Armenian coverage. Kisat is a light face
+     rather than a small one — it sets within a few percent of the alternatives
+     at the same size — so the halo below, not a size bump, is what carries it. */
+  font-family: 'Armeniapedia Kisat', 'Noto Sans Armenian', 'Segoe UI', system-ui, sans-serif;
+  font-size: 31px; line-height: 1.15; letter-spacing: 0.055em;
+  white-space: nowrap; user-select: none;
+  color: var(--text);
+  /* Stacked rather than one shadow: each pass compounds the alpha, so the
+     halo is dense next to the strokes and gone within a few pixels. Kisat is a
+     light face, and a light face on a bright fill is exactly the case that
+     fails without this. */
+  text-shadow:
+    0 0 2px var(--wordmark-halo),
+    0 0 4px var(--wordmark-halo),
+    0 0 8px var(--wordmark-halo),
+    0 1px 3px var(--wordmark-halo);
+}
+@media (max-width: 640px) {
+  #banner {
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
+    /* The top edge is the wordmark's alone now that the counts live in the
+       legend, so this only has to stop it running off a narrow screen. */
+    max-width: calc(100vw - 40px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  }
+  #banner::before { inset: -28px -48px -32px -34px; }
+  #wordmark { font-size: 23px; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Inside the legend, directly under the slider whose selection it counts —
+   so it needs none of the panel treatment it had as a free-floating box in
+   the opposite corner. It stays display:none until the data lands, which is
+   what the loader hand-off toggles. */
+#stats {
+  color: var(--text-dim);
+  font-size: 11px; line-height: 1.7;
+  margin-top: 10px;
+  display: none;
+}
+/* A single sentence now, so none of the column alignment the breakdown needed
+   applies. It reads as a caption to the slider directly above it. */
+#stats { opacity: 0.75; }
+
+/* ── mobile ── */
+@media (max-width: 640px) {
+  #legend {
+    width: auto;
+    left: calc(10px + env(safe-area-inset-left));
+    right: calc(10px + env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    padding: 11px 12px;
+  }
+  #stats { font-size: 10px; line-height: 1.5; margin-top: 8px; }
+  .maplibregl-popup { max-width: min(260px, calc(100vw - 32px)) !important; }
+
+}
+
+/* ── touch targets — anything driven by a finger, regardless of screen size ── */
+@media (pointer: coarse) {
+  .maplibregl-popup-close-button { width: 30px; height: 30px; font-size: 18px; line-height: 30px; }
+
+  .year-range-slider { height: 26px; }
+  .year-range-slider input[type="range"]::-webkit-slider-thumb {
+    width: 22px; height: 22px; margin-top: -9.5px;
+  }
+  .year-range-slider input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px;
+  }
+
+  .year-filter-input, .p-suggest-input, .p-suggest-to,
+  .p-edit-name, .p-edit-street, .p-edit-number {
+    padding: 9px 10px; font-size: 16px; /* 16px avoids iOS auto-zoom-on-focus */
+  }
+  .p-edit-save {
+    padding: 9px 13px; font-size: 13px;
+  }
+  /* a touch target rather than a pointer one */
+  .map-switch { width: 34px; height: 20px; }
+  .map-switch::after { width: 14px; height: 14px; }
+  .map-toggle input:checked + .map-switch::after { transform: translateX(14px); }
+  .p-year-mode-opt span { padding: 8px 0; font-size: 12px; }
+}
+
+/* ── public suggestion form ─────────────────────────────────────────────────
+   The same visual language as .p-edit (the local editor's form), because it is
+   the same act — the difference is that this one only ever renders inputs for
+   fields that are EMPTY, and what it sends goes to a review queue. */
+
+.p-public .p-source-label {
+  font-size: 11px; color: var(--text-dim); margin-top: 2px;
+}
+.p-source-kind, .p-source-note {
+  background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 4px 6px; font-size: 12px; width: 100%; min-width: 0;
+}
+.p-source-note::placeholder { color: var(--placeholder); }
+/* An unanswered required field should look unanswered. :invalid covers it while
+   the empty placeholder option is still selected, because that option is
+   disabled — so this fades on the first real choice and needs no JS. */
+.p-source-kind:invalid { color: var(--placeholder); border-color: var(--border); }
+
+/* Honeypot. Hidden from people without display:none, which some bots skip, and
+   kept out of the tab order and the accessibility tree so nobody lands on it by
+   accident. A filled one is answered 200 and dropped — never told it failed. */
+.p-website {
+  position: absolute; left: -9999px; width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
+}
+
+.p-turnstile:empty { display: none; }   /* no key set, no gap left behind */
+
+/* The confirmation replaces the form rather than sitting under it: leaving the
+   inputs on screen after a successful send is what invites a second identical
+   submission. */
+.p-thanks strong { color: var(--accent-text); font-size: 12px; }
+.p-thanks p { margin: 5px 0 0; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* A queued suggestion cannot change the map — nothing is published before
+   review — so this line is the only evidence the submission exists. */
+.p-pending {
+  font-size: 11px; color: var(--accent-text); line-height: 1.5;
+}
+/* all that is left in this block is the one-time "your suggestion is live"
+   line; the "nothing to add / get in touch" copy it used to hold said, once per
+   building, what the legend says once for the map */
+.p-nothing p { margin: 0; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* ── review queue ──────────────────────────────────────────────────────────── */
+
+.review-count {
+  font-size: 12px; color: var(--accent-text); font-weight: 600; margin-top: 2px;
+}
+.r-review { display: flex; flex-direction: column; gap: 7px; }
+.r-proposal { display: flex; flex-direction: column; gap: 3px; }
+.r-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.r-row span { color: var(--text-faint); }
+.r-row strong { color: var(--text); text-align: right; }
+
+/* ── editing a claim before approving it ──────────────────────────────────
+   Approve/Reject answer the wrong question when a claim is nearly right: three
+   fragments of a split rarely share one year. The boxes are the year SHAPES —
+   exact, after, before — because filling the wrong pair is the one mistake the
+   shapes make easy, and naming them is cheaper than a mode switch. */
+.r-editor { display: flex; flex-direction: column; gap: 5px; }
+.r-edit-years { display: flex; gap: 5px; }
+.r-edit-field { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.r-edit-field span { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+                     color: var(--text-faint); }
+.r-edit {
+  width: 100%; box-sizing: border-box;
+  font: inherit; font-size: 12px; padding: 3px 5px;
+  color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+.r-edit:focus { outline: none; border-color: var(--accent-text); }
+/* The evidence, given the visual weight it earns: it is the thing a reviewer is
+   actually judging, and a cornerstone should be approvable at a glance. */
+.r-source {
+  font-size: 11px; color: var(--accent-text);
+  background: var(--input-bg); border-radius: 4px; padding: 3px 6px;
+}
+.r-note {
+  margin: 0; font-size: 11px; color: var(--text-dim);
+  line-height: 1.5; font-style: italic;
+}
+.r-meta { font-size: 10px; color: var(--text-faint); font-family: ui-monospace, monospace; }
+.r-actions { display: flex; gap: 6px; }
+.r-approve, .r-reject, .r-noted {
+  flex: 1; border-radius: 5px; padding: 6px 8px; font-size: 11px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--input-bg); color: var(--text);
+}
+.r-approve { background: rgba(80,200,120,0.14); color: #3fae6a; border-color: rgba(80,200,120,0.3); }
+.r-reject  { background: rgba(220,80,80,0.12);  color: #d95c5c; border-color: rgba(220,80,80,0.28); }
+/* a flag has nothing to approve — "noted" is the honest outcome, and it is the
+   same cyan the map uses for inference: something believed, not yet confirmed */
+.r-noted   { background: rgba(0,184,204,0.12); color: #00b8cc; border-color: rgba(0,184,204,0.3); }
+.r-approve:disabled, .r-reject:disabled, .r-noted:disabled { opacity: 0.5; cursor: default; }
+.r-link { font-size: 11px; color: #0066ff; text-decoration: none; }
+.r-msg { font-size: 10px; color: var(--text-faint); min-height: 12px; }
+
+.lang-select {
+  width: 100%; background: var(--input-bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  padding: 5px 6px; font-size: 12px;
+}
+
+/* ── the form on a phone ────────────────────────────────────────────────────
+   This is the primary case, not an edge one. The best evidence this form asks
+   for is a date carved above a door, which means a person standing outside with
+   a phone — so a six-input form in a 260px floating box that the keyboard then
+   covers is the difference between the phase working and not.
+
+   Only popups that actually contain a form become sheets; a plain info popup
+   stays where it was tapped, which is the right behaviour for it. Browsers
+   without :has() (Firefox before 121) simply keep the old popup — the form is
+   cramped there, not broken. */
+@media (max-width: 640px) {
+  .maplibregl-popup:has(.p-edit) {
+    position: fixed !important;
+    left: 0 !important; right: 0 !important; bottom: 0 !important;
+    top: auto !important;
+    /* MapLibre writes its positioning transform inline, so overriding it is the
+       one place !important is doing real work rather than papering over order. */
+    transform: none !important;
+    max-width: none !important;
+    width: 100%;
+  }
+  .maplibregl-popup:has(.p-edit) .maplibregl-popup-content {
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    max-height: 78vh;
+    overflow-y: auto;
+    /* the sheet is the surface now, so it should read as one rather than as a
+       tooltip that happens to be wide */
+    box-shadow: 0 -8px 40px var(--popup-shadow);
+  }
+  .maplibregl-popup:has(.p-edit) .maplibregl-popup-close-button {
+    width: 40px; height: 40px; font-size: 22px; line-height: 40px;
+  }
+  /* keep a focused input clear of the keyboard when the sheet scrolls */
+  .maplibregl-popup:has(.p-edit) input,
+  .maplibregl-popup:has(.p-edit) select { scroll-margin-bottom: 90px; }
+  /* full-width action on a sheet: a 4px-tall button aligned left is a miss
+     waiting to happen at arm's length */
+  .maplibregl-popup:has(.p-edit) .p-edit-save {
+    align-self: stretch; text-align: center; padding: 12px; font-size: 14px;
+  }
+}
+
+@media (pointer: coarse) {
+  .p-source-kind, .p-source-note {
+    padding: 9px 10px; font-size: 16px;  /* 16px avoids iOS auto-zoom-on-focus */
+  }
+  .r-approve, .r-reject { padding: 11px 8px; font-size: 13px; }
+}
+
+/* The legend is z-index 10 and fixed to the bottom of the viewport; a MapLibre
+   popup carries no z-index at all. On a phone the sheet therefore opened
+   UNDERNEATH the legend, and since the sheet's action sits at its bottom edge,
+   the one control the whole form exists for was the part that got covered.
+   Raising the sheet is the fix; hiding the legend as well stops its backdrop
+   bleeding through and stops taps landing on a panel behind the sheet. */
+@media (max-width: 640px) {
+  .maplibregl-popup:has(.p-edit) { z-index: 20; }
+  body:has(.maplibregl-popup .p-edit) #legend { display: none; }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Review queue — Urban Layers: Yerevan through time</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"
+        integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V" crossorigin="anonymous">
+  <link href="map.css" rel="stylesheet">
+  <!-- integrity pins the exact file; see the note in index.html before bumping -->
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
+          integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
+</head>
+<!-- The review queue: pending submissions as pins, approve or reject.
+
+     Protected by Cloudflare Access, NOT by anything in this file. If that
+     policy is removed, this page and /api/queue publish the queue, source_note
+     included — which can identify submitters. Verify with a private window
+     after any change to Access settings — see docs/build-and-deploy.md.
+
+     Everything visible is built by buildChrome('review') in map.js: the shared
+     map furniture, plus the queue count and the "only what's pending" filter
+     that exist on this page alone. -->
+<body>
+<script src="map.js"></script>
+<script>initBuildingMap({ mode: 'review', tiles: true });</script>
+</body>
+</html>
