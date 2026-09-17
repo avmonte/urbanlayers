@@ -1,5 +1,17 @@
 # Urban Layers: Yerevan through time
 
+A map of Yerevan's ~76,000 buildings coloured by when they were built, with a
+public form for contributing a year and a review queue behind it.
+
+**Live: [urbanlayers.xyz](https://urbanlayers.xyz)**
+
+Most buildings have no year — that is the point of the project. OSM tags supply
+about fifty; the rest are researched by hand or, where two models agree strongly
+enough, inferred. Nothing is published as a fact unless the evidence supports
+saying so out loud.
+
+## The tree
+
 ```mermaid
 flowchart TD
 
@@ -104,40 +116,6 @@ class node_suggest_api,node_queue_api,node_review_api toneRose
 class node_d1,node_build,node_public,node_database_schema,node_deployment_docs toneIndigo
 class node_submission_schema toneNeutral
 ```
-
-A map of Yerevan's ~76,000 buildings coloured by when they were built, with a
-public form for contributing a year and a review queue behind it.
-
-**Live: [urbanlayers.xyz](https://urbanlayers.xyz)**
-
-Most buildings have no year — that is the point of the project. OSM tags supply
-about fifty; the rest are researched by hand or, where two models agree strongly
-enough, inferred. Nothing is published as a fact unless the evidence supports
-saying so out loud.
-
-## The tree
-
-```
-pipeline/   the Python: fetch → merge → serve. paths.py resolves everything
-web/        the site (index.html) and the review queue (review.html), sharing
-            one map engine. Served at / by pipeline/server.py
-functions/  Cloudflare Pages Functions — the name is load-bearing, it is what
-            makes functions/api/suggest.js answer /api/suggest
-data/
-  source/   irreplaceable and tracked: hand-researched years, provenance,
-            water, inferred eras
-  cache/    re-downloadable: the Geofabrik extract, the Overpass response
-  local/    dev state: the offline twin of the D1 queue
-build/      regenerable in ~2 minutes
-public/     the deploy artifact, assembled by build_public.sh
-exp/        local only, gitignored: the era classifier and the one-off
-            generators that produce data/source files. Not needed to build
-tests/      no framework; run any of them from anywhere
-docs/       build-and-deploy.md is the operational reference
-```
-
-**Which directory a file is in tells you whether it survives a delete.** Only
-`data/source/` holds work that cannot be regenerated.
 
 ## Getting started
 
