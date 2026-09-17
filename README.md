@@ -1,5 +1,110 @@
 # Urban Layers: Yerevan through time
 
+```mermaid
+flowchart TD
+
+subgraph group_pipeline["Data pipeline"]
+  node_fetch["Building fetch &amp; assembly<br/>Python pipeline<br/>[fetch_buildings.py]"]
+  node_paths["Path resolution<br/>Python boundary<br/>[paths.py]"]
+  node_osm_live["Live OSM fetch<br/>OSM adapter<br/>[osm_live.py]"]
+  node_osm_source["OSM source processing<br/>Python module<br/>[osm_source.py]"]
+  node_map_data["Generated map data<br/>Build artifact"]
+  node_local_server["Local server &amp; offline loop<br/>Python server<br/>[server.py]"]
+  node_apply_queue["Apply approved queue<br/>Python pipeline<br/>[apply_queue.py]"]
+  node_split_detection["OSM split detection<br/>Python pipeline<br/>[detect_splits.py]"]
+end
+
+subgraph group_sources["Tracked source data"]
+  node_inferred["Inferred building eras<br/>JSON source"]
+  node_suggestions["Research &amp; suggestions<br/>JSON source<br/>[suggestions.json]"]
+  node_water["Water geometry<br/>GeoJSON source<br/>[water.geojson]"]
+end
+
+subgraph group_client["Static clients"]
+  node_map_client["Public/editor map<br/>MapLibre client<br/>[map.js]"]
+  node_map_page["Map page<br/>HTML entry<br/>[index.html]"]
+  node_review_page["Reviewer UI<br/>HTML entry<br/>[review.html]"]
+end
+
+subgraph group_api["Submission API"]
+  node_suggest_api{{"Suggest endpoint<br/>Pages Function<br/>[suggest.js]"}}
+  node_queue_api{{"Queue endpoint<br/>Pages Function<br/>[queue.js]"}}
+  node_review_api{{"Review endpoint<br/>Pages Function<br/>[review.js]"}}
+end
+
+subgraph group_deploy["Publishing"]
+  node_d1[("Review queue<br/>Cloudflare D1")]
+  node_build["Public build<br/>Build script<br/>[build_public.sh]"]
+  node_public["Static public output<br/>Deployment artifact"]
+  node_database_schema["Queue database schema<br/>SQL schema<br/>[schema.sql]"]
+  node_deployment_docs["Build &amp; deployment guide<br/>Operations documentation"]
+end
+
+node_submission_schema["Submission contract<br/>Schema documentation"]
+
+node_paths -->|"resolves paths"| node_fetch
+node_osm_live -->|"OSM geometry &amp; tags"| node_fetch
+node_osm_source -->|"source processing"| node_fetch
+node_inferred -->|"inferred eras"| node_fetch
+node_suggestions -->|"durable evidence"| node_fetch
+node_water -->|"water layer"| node_fetch
+node_fetch -->|"generates"| node_map_data
+node_map_page -->|"loads"| node_map_client
+node_map_client -->|"renders"| node_map_data
+node_review_page -->|"shares map behavior"| node_map_client
+node_map_client -->|"submits suggestion"| node_suggest_api
+node_submission_schema -.->|"validates against"| node_suggest_api
+node_submission_schema -.->|"validates against"| node_apply_queue
+node_suggest_api -->|"stores untrusted input"| node_d1
+node_queue_api -->|"reads queue"| node_d1
+node_review_api -->|"moderates records"| node_d1
+node_review_page -->|"loads queue"| node_queue_api
+node_review_page -->|"submits decision"| node_review_api
+node_local_server -->|"serves locally"| node_map_client
+node_local_server -->|"supports offline workflow"| node_apply_queue
+node_apply_queue -->|"checks identity changes"| node_split_detection
+node_apply_queue -->|"merges approved evidence"| node_suggestions
+node_build -->|"assembles"| node_public
+node_map_data -->|"includes generated data"| node_build
+node_database_schema -.->|"defines"| node_d1
+node_deployment_docs -.->|"documents"| node_build
+
+click node_fetch "https://github.com/avmonte/urbanlayers/blob/main/pipeline/fetch_buildings.py"
+click node_paths "https://github.com/avmonte/urbanlayers/blob/main/pipeline/paths.py"
+click node_osm_live "https://github.com/avmonte/urbanlayers/blob/main/pipeline/osm_live.py"
+click node_osm_source "https://github.com/avmonte/urbanlayers/blob/main/pipeline/osm_source.py"
+click node_inferred "https://github.com/avmonte/urbanlayers/blob/main/data/source/inferred_buildings.json"
+click node_suggestions "https://github.com/avmonte/urbanlayers/blob/main/data/source/suggestions.json"
+click node_water "https://github.com/avmonte/urbanlayers/blob/main/data/source/water.geojson"
+click node_map_client "https://github.com/avmonte/urbanlayers/blob/main/web/map.js"
+click node_map_page "https://github.com/avmonte/urbanlayers/blob/main/web/index.html"
+click node_review_page "https://github.com/avmonte/urbanlayers/blob/main/web/review.html"
+click node_submission_schema "https://github.com/avmonte/urbanlayers/blob/main/docs/submission-schema.md"
+click node_suggest_api "https://github.com/avmonte/urbanlayers/blob/main/functions/api/suggest.js"
+click node_queue_api "https://github.com/avmonte/urbanlayers/blob/main/functions/api/queue.js"
+click node_review_api "https://github.com/avmonte/urbanlayers/blob/main/functions/api/review.js"
+click node_local_server "https://github.com/avmonte/urbanlayers/blob/main/pipeline/server.py"
+click node_apply_queue "https://github.com/avmonte/urbanlayers/blob/main/pipeline/apply_queue.py"
+click node_split_detection "https://github.com/avmonte/urbanlayers/blob/main/pipeline/detect_splits.py"
+click node_build "https://github.com/avmonte/urbanlayers/blob/main/build_public.sh"
+click node_database_schema "https://github.com/avmonte/urbanlayers/blob/main/schema.sql"
+click node_deployment_docs "https://github.com/avmonte/urbanlayers/blob/main/docs/build-and-deploy.md"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_fetch,node_paths,node_osm_live,node_osm_source,node_map_data,node_local_server,node_apply_queue,node_split_detection toneBlue
+class node_inferred,node_suggestions,node_water toneAmber
+class node_map_client,node_map_page,node_review_page toneMint
+class node_suggest_api,node_queue_api,node_review_api toneRose
+class node_d1,node_build,node_public,node_database_schema,node_deployment_docs toneIndigo
+class node_submission_schema toneNeutral
+```
+
 A map of Yerevan's ~76,000 buildings coloured by when they were built, with a
 public form for contributing a year and a review queue behind it.
 
